@@ -23,7 +23,7 @@ function Router() {
 function App() {
   const [isCreateRoomModalOpen, setIsCreateRoomModalOpen] = useState(false);
   const [location] = useLocation();
-  const showHeader = location === '/';
+  const isRoomPage = location.startsWith('/room/');
 
   const handleCreateRoom = () => {
     setIsCreateRoomModalOpen(true);
@@ -32,7 +32,7 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <div className="min-h-screen flex flex-col bg-background">
-        {showHeader && (
+        {!isRoomPage && (
           <>
             <Header onCreateRoom={handleCreateRoom} />
             <MobileNav onCreateRoom={handleCreateRoom} />
