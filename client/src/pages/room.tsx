@@ -15,8 +15,8 @@ export default function Room() {
   const [_, setLocation] = useLocation();
   const [isMuted, setIsMuted] = useState(false);
   const [isHandRaised, setIsHandRaised] = useState(false);
-  const [conversationStarted, setConversationStarted] = useState(false);
   const conversationRef = useRef<{ stop: () => void } | null>(null);
+  const speakerMapRef = useRef<Map<number, number>>(new Map()); // Maps speakerIndex -> userId
 
   // Load room data
   useEffect(() => {
@@ -57,39 +57,46 @@ export default function Room() {
     }
   }, [id, setLocation]);
 
-  // Initialize conversation simulation when room is loaded
+  // Start voice simulation when room is loaded
   useEffect(() => {
-    if (room && !conversationStarted) {
-      // Only start if we have speakers
-      if (room.speakers.length > 0) {
-        // Get non-muted speakers
-        const availableSpeakers = room.speakers.filter(speaker => !speaker.isMuted && !speaker.isYou);
+    if (!room) return;
+    
+    // Clean up any existing simulation
+    if (conversationRef.current) {
+      conversationRef.current.stop();
+      conversationRef.current = null;
+    }
+    
+    // Only start if we have speakers
+    if (room.speakers.length > 0) {
+      // Get non-muted speakers
+      const availableSpeakers = room.speakers.filter(speaker => !speaker.isMuted && !speaker.isYou);
+      
+      if (availableSpeakers.length > 0) {
+        // Create a mapping of simulation indexes to speaker IDs
+        speakerMapRef.current.clear();
+        availableSpeakers.forEach((speaker, index) => {
+          speakerMapRef.current.set(index, speaker.id);
+        });
         
-        if (availableSpeakers.length > 0) {
-          setConversationStarted(true);
-          
-          // Start conversation simulation
+        // Start conversation simulation
+        try {
           conversationRef.current = simulateConversation(
             availableSpeakers.length,
             // When a speaker starts talking
             (speakerIndex) => {
-              setRoom(prevRoom => {
+              const speakerId = speakerMapRef.current.get(speakerIndex);
+              if (speakerId === undefined) return;
+              
+              setRoom((prevRoom) => {
                 if (!prevRoom) return null;
                 
                 // Update speaking state for this speaker
-                const updatedSpeakers = [...prevRoom.speakers];
-                const speakerToUpdate = availableSpeakers[speakerIndex];
-                
-                if (speakerToUpdate) {
-                  const speakerRoomIndex = updatedSpeakers.findIndex(s => s.id === speakerToUpdate.id);
-                  
-                  if (speakerRoomIndex !== -1) {
-                    updatedSpeakers[speakerRoomIndex] = {
-                      ...updatedSpeakers[speakerRoomIndex],
-                      isSpeaking: true
-                    };
-                  }
-                }
+                const updatedSpeakers = prevRoom.speakers.map(speaker => 
+                  speaker.id === speakerId 
+                    ? { ...speaker, isSpeaking: true } 
+                    : speaker
+                );
                 
                 return {
                   ...prevRoom,
@@ -99,49 +106,40 @@ export default function Room() {
             },
             // When a speaker stops talking
             (speakerIndex) => {
-              setRoom(prevRoom => {
+              const speakerId = speakerMapRef.current.get(speakerIndex);
+              if (speakerId === undefined) return;
+              
+              setRoom((prevRoom) => {
                 if (!prevRoom) return null;
                 
                 // Update speaking state for this speaker
-                const updatedSpeakers = [...prevRoom.speakers];
-                const speakerToUpdate = availableSpeakers[speakerIndex];
-                
-                if (speakerToUpdate) {
-                  const speakerRoomIndex = updatedSpeakers.findIndex(s => s.id === speakerToUpdate.id);
-                  
-                  if (speakerRoomIndex !== -1) {
-                    updatedSpeakers[speakerRoomIndex] = {
-                      ...updatedSpeakers[speakerRoomIndex],
-                      isSpeaking: false
-                    };
-                  }
-                }
+                const updatedSpeakers = prevRoom.speakers.map(speaker => 
+                  speaker.id === speakerId 
+                    ? { ...speaker, isSpeaking: false } 
+                    : speaker
+                );
                 
                 return {
                   ...prevRoom,
                   speakers: updatedSpeakers
                 };
               });
-            },
-            // When simulation ends
-            () => {
-              setConversationStarted(false);
-            },
-            // Run indefinitely (0 = no time limit)
-            0
+            }
           );
+        } catch (err) {
+          console.warn("Could not start audio simulation:", err);
         }
       }
     }
     
-    // Clean up conversation simulation when leaving the room
+    // Clean up conversation simulation when unmounting
     return () => {
       if (conversationRef.current) {
         conversationRef.current.stop();
         conversationRef.current = null;
       }
     };
-  }, [room, conversationStarted]);
+  }, [room?.id]); // Only re-run if the room ID changes
 
   // Update your mute status
   useEffect(() => {
