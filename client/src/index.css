@@ -14,19 +14,85 @@
 
 @layer utilities {
   .speaking-indicator {
-    box-shadow: 0 0 0 rgba(139, 92, 246, 0.7);
-    animation: pulse 2s infinite;
+    position: relative;
+  }
+  
+  .speaking-indicator::before {
+    content: "";
+    position: absolute;
+    inset: -3px;
+    border-radius: 9999px;
+    background: conic-gradient(from 0deg, rgba(139, 92, 246, 0.8), rgba(139, 92, 246, 0.3), rgba(139, 92, 246, 0.8));
+    animation: rotate 3s linear infinite;
+    z-index: -1;
+  }
+  
+  .speaking-indicator::after {
+    content: "";
+    position: absolute;
+    inset: -3px;
+    border-radius: 9999px;
+    background: radial-gradient(circle, rgba(139, 92, 246, 0.7) 0%, rgba(139, 92, 246, 0) 70%);
+    animation: pulse 2s ease-in-out infinite;
+    z-index: -2;
+  }
+  
+  .speaking-slight {
+    animation: speaking-slight 2s ease-in-out infinite;
+  }
+  
+  .speaking-medium {
+    animation: speaking-medium 1.5s ease-in-out infinite;
+  }
+  
+  .speaking-intense {
+    animation: speaking-intense 0.8s ease-in-out infinite;
+  }
+  
+  @keyframes rotate {
+    0% {
+      transform: rotate(0deg);
+    }
+    100% {
+      transform: rotate(360deg);
+    }
   }
   
   @keyframes pulse {
-    0% {
-      box-shadow: 0 0 0 0 rgba(139, 92, 246, 0.7);
+    0%, 100% {
+      opacity: 0.3;
+      transform: scale(0.95);
     }
-    70% {
-      box-shadow: 0 0 0 10px rgba(139, 92, 246, 0);
+    50% {
+      opacity: 0.8;
+      transform: scale(1.05);
     }
-    100% {
-      box-shadow: 0 0 0 0 rgba(139, 92, 246, 0);
+  }
+  
+  @keyframes speaking-slight {
+    0%, 100% {
+      transform: scale(1);
+    }
+    50% {
+      transform: scale(1.02);
+    }
+  }
+  
+  @keyframes speaking-medium {
+    0%, 100% {
+      transform: scale(1);
+    }
+    50% {
+      transform: scale(1.05);
+    }
+  }
+  
+  @keyframes speaking-intense {
+    0%, 100% {
+      transform: scale(1);
+    }
+    50% {
+      transform: scale(1.08);
     }
   }
 
