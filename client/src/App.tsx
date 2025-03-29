@@ -9,6 +9,8 @@ import { useState } from "react";
 import { CreateRoomModal } from "./components/modals/create-room-modal";
 import { Header } from "./components/layout/header";
 import { MobileNav } from "./components/layout/mobile-nav";
+import { SearchProvider } from "./context/search-context";
+import { ThemeProvider } from "./context/theme-context";
 
 function Router() {
   return (
@@ -31,22 +33,26 @@ function App() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <div className="min-h-screen flex flex-col bg-background">
-        {!isRoomPage && (
-          <>
-            <Header onCreateRoom={handleCreateRoom} />
-            <MobileNav onCreateRoom={handleCreateRoom} />
-          </>
-        )}
-        <main className="flex-1">
-          <Router />
-        </main>
-        <CreateRoomModal 
-          isOpen={isCreateRoomModalOpen} 
-          onClose={() => setIsCreateRoomModalOpen(false)} 
-        />
-      </div>
-      <Toaster />
+      <ThemeProvider>
+        <SearchProvider>
+          <div className="min-h-screen flex flex-col bg-background">
+            {!isRoomPage && (
+              <>
+                <Header onCreateRoom={handleCreateRoom} />
+                <MobileNav onCreateRoom={handleCreateRoom} />
+              </>
+            )}
+            <main className="flex-1">
+              <Router />
+            </main>
+            <CreateRoomModal 
+              isOpen={isCreateRoomModalOpen} 
+              onClose={() => setIsCreateRoomModalOpen(false)} 
+            />
+          </div>
+          <Toaster />
+        </SearchProvider>
+      </ThemeProvider>
     </QueryClientProvider>
   );
 }

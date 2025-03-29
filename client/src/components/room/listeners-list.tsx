@@ -1,51 +1,47 @@
 import { User } from "@/types";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { MicOff } from "lucide-react";
 
 interface ListenersListProps {
   listeners: User[];
-  maxVisible?: number;
 }
 
-export const ListenersList = ({ listeners, maxVisible = 16 }: ListenersListProps) => {
-  const visibleListeners = listeners.slice(0, maxVisible);
-  const remainingCount = listeners.length - maxVisible;
-  
+export const ListenersList = ({ listeners }: ListenersListProps) => {
+  if (!listeners || listeners.length === 0) return null;
+
   return (
-    <section>
-      <h3 className="text-sm font-medium text-gray-400 mb-4 uppercase tracking-wider">
-        Listeners ({listeners.length})
-      </h3>
-      
-      <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-4">
-        {visibleListeners.map((listener) => (
-          <div key={listener.id} className="flex flex-col items-center">
-            <div className="w-12 h-12 rounded-full mb-2">
-              {listener.isYou ? (
-                <div className="w-full h-full bg-gradient-to-r from-primary to-secondary rounded-full flex items-center justify-center">
-                  <span className="text-white text-xs font-medium">You</span>
-                </div>
-              ) : (
-                <Avatar className="w-full h-full">
+    <div className="mb-8">
+      <h3 className="text-xl font-medium mb-4">Listeners ({listeners.length})</h3>
+      <div className="grid grid-cols-3 sm:grid-cols-5 md:grid-cols-7 lg:grid-cols-8 gap-3">
+        {listeners.map((listener) => {
+          const isMuted = 'isMuted' in listener && listener.isMuted;
+          
+          return (
+            <div 
+              key={listener.id} 
+              className="flex flex-col items-center text-center space-y-2"
+            >
+              <div className="relative">
+                <Avatar className="w-12 h-12 border border-border rounded-full">
                   <AvatarImage src={listener.avatarUrl} alt={listener.name} />
-                  <AvatarFallback>
-                    {listener.name.split(' ').map(n => n[0]).join('')}
-                  </AvatarFallback>
+                  <AvatarFallback>{listener.name.charAt(0)}</AvatarFallback>
                 </Avatar>
-              )}
+                
+                {isMuted && (
+                  <div className="absolute -bottom-1 -right-1 bg-background rounded-full p-0.5 border border-border">
+                    <MicOff className="h-3 w-3 text-muted-foreground" />
+                  </div>
+                )}
+              </div>
+              
+              <p className="text-sm truncate max-w-[80px]">
+                {listener.name}
+                {listener.isYou && <span className="text-primary ml-1">(You)</span>}
+              </p>
             </div>
-            <span className="text-xs truncate w-full text-center">{listener.name}</span>
-          </div>
-        ))}
-        
-        {remainingCount > 0 && (
-          <div className="flex flex-col items-center">
-            <div className="w-12 h-12 rounded-full mb-2 bg-dark-surface flex items-center justify-center">
-              <span className="text-gray-400 text-xs font-medium">+{remainingCount}</span>
-            </div>
-            <span className="text-xs truncate w-full text-center text-gray-400">More</span>
-          </div>
-        )}
+          );
+        })}
       </div>
-    </section>
+    </div>
   );
 };

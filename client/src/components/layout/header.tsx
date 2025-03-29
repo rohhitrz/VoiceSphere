@@ -6,6 +6,7 @@ import { PlusIcon, SearchIcon } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useTheme } from "@/hooks/use-theme";
+import { useSearch } from "@/context/search-context";
 
 interface HeaderProps {
   onCreateRoom: () => void;
@@ -13,12 +14,10 @@ interface HeaderProps {
 
 export const Header = ({ onCreateRoom }: HeaderProps) => {
   const { theme } = useTheme();
-  const [searchQuery, setSearchQuery] = useState("");
+  const { searchQuery, setSearchQuery } = useSearch();
   
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchQuery(e.target.value);
-    // Add your search logic here
-    console.log("Searching for:", e.target.value);
   };
 
   return (
@@ -65,7 +64,10 @@ export const Header = ({ onCreateRoom }: HeaderProps) => {
               className="p-2 rounded-full hover:bg-accent"
               onClick={() => {
                 // Show mobile search modal or input
-                console.log("Show mobile search");
+                const query = prompt("Search for rooms:", searchQuery);
+                if (query !== null) {
+                  setSearchQuery(query);
+                }
               }}
             >
               <SearchIcon className="h-5 w-5" />

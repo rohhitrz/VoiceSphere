@@ -3,14 +3,15 @@ import { RoomCard } from "./room-card";
 import { TopicFilter } from "./topic-filter";
 import { useEffect, useState } from "react";
 import { api } from "@/services/api-service";
+import { useSearch } from "@/context/search-context";
 
 interface RoomListProps {
   initialRooms: Room[];
 }
 
 export const RoomList = ({ initialRooms }: RoomListProps) => {
-  const [currentTopic, setCurrentTopic] = useState<Topic>('All');
-  const [rooms, setRooms] = useState<Room[]>(initialRooms);
+  const { searchQuery, currentTopic, setCurrentTopic } = useSearch();
+  const [displayedRooms, setDisplayedRooms] = useState<Room[]>(initialRooms);
   const [topics, setTopics] = useState<Topic[]>(['All']);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -28,13 +29,35 @@ export const RoomList = ({ initialRooms }: RoomListProps) => {
     fetchTopics();
   }, []);
 
+  // Update displayed rooms when initialRooms, searchQuery, or currentTopic changes
+  useEffect(() => {
+    setIsLoading(true);
+    
+    // Filter rooms based on topic and search query
+    const filteredRooms = initialRooms.filter(room => {
+      // Filter by topic if not "All"
+      const matchesTopic = currentTopic === 'All' || room.topic === currentTopic;
+      
+      // Filter by search query (case insensitive)
+      const matchesSearch = searchQuery === '' || 
+        room.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        room.topic.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (room.description && room.description.toLowerCase().includes(searchQuery.toLowerCase()));
+      
+      return matchesTopic && matchesSearch;
+    });
+    
+    setDisplayedRooms(filteredRooms);
+    setIsLoading(false);
+  }, [initialRooms, searchQuery, currentTopic]);
+
   const handleTopicChange = async (topic: Topic) => {
     setCurrentTopic(topic);
     setIsLoading(true);
     
     try {
       const filteredRooms = await api.rooms.getByTopic(topic);
-      setRooms(filteredRooms);
+      setDisplayedRooms(filteredRooms);
     } catch (error) {
       console.error("Error fetching rooms by topic:", error);
     } finally {
@@ -44,8 +67,15 @@ export const RoomList = ({ initialRooms }: RoomListProps) => {
 
   return (
     <section className="mb-20">
-      <div className="flex justify-between items-center mb-4">
-        <h2 className="text-xl font-semibold">Explore Rooms</h2>
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 gap-4">
+        <div>
+          <h2 className="text-xl font-semibold">Explore Rooms</h2>
+          {searchQuery && (
+            <p className="text-sm text-muted-foreground">
+              Showing results for "{searchQuery}"
+            </p>
+          )}
+        </div>
         <TopicFilter 
           topics={topics} 
           currentTopic={currentTopic}
@@ -59,14 +89,18 @@ export const RoomList = ({ initialRooms }: RoomListProps) => {
           Array.from({ length: 6 }).map((_, i) => (
             <div key={i} className="h-64 bg-card/50 animate-pulse rounded-lg"></div>
           ))
-        ) : rooms.length === 0 ? (
+        ) : displayedRooms.length === 0 ? (
           // Show empty state
           <div className="col-span-full text-center py-10">
-            <p className="text-muted-foreground">No rooms available for this topic.</p>
+            <p className="text-muted-foreground">
+              {searchQuery 
+                ? `No rooms found matching "${searchQuery}"${currentTopic !== 'All' ? ` in ${currentTopic}` : ''}.` 
+                : `No rooms available${currentTopic !== 'All' ? ` for ${currentTopic}` : ''}.`}
+            </p>
           </div>
         ) : (
           // Show rooms
-          rooms.map((room) => (
+          displayedRooms.map((room) => (
             <RoomCard key={room.id} room={room} />
           ))
         )}

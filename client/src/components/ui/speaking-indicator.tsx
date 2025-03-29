@@ -4,17 +4,17 @@ import { useEffect, useState } from "react";
 type SpeakingIntensity = 'slight' | 'medium' | 'intense';
 
 interface SpeakingIndicatorProps {
-  isSpeaking: boolean;
+  isSpeaking?: boolean;
   className?: string;
   intensity?: SpeakingIntensity;
 }
 
 export const SpeakingIndicator = ({ 
-  isSpeaking, 
+  isSpeaking = true, 
   className,
-  intensity: initialIntensity
+  intensity: initialIntensity = 'medium'
 }: SpeakingIndicatorProps) => {
-  const [intensity, setIntensity] = useState<SpeakingIntensity>(initialIntensity || 'medium');
+  const [intensity, setIntensity] = useState<SpeakingIntensity>(initialIntensity);
   
   // Randomly change speaking intensity for a more natural effect
   useEffect(() => {
@@ -51,7 +51,8 @@ export const SpeakingIndicator = ({
   return (
     <div 
       className={cn(
-        "absolute inset-0 rounded-full speaking-indicator",
+        "absolute -bottom-1 -right-1 h-5 w-5 rounded-full border-2 border-background",
+        "bg-green-500 animate-pulse",
         `speaking-${intensity}`,
         className
       )} 
