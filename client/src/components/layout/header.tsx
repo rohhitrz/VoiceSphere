@@ -5,20 +5,32 @@ import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { PlusIcon, SearchIcon } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { useTheme } from "@/hooks/use-theme";
 
 interface HeaderProps {
   onCreateRoom: () => void;
 }
 
 export const Header = ({ onCreateRoom }: HeaderProps) => {
+  const { theme } = useTheme();
+  const [searchQuery, setSearchQuery] = useState("");
+  
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchQuery(e.target.value);
+    // Add your search logic here
+    console.log("Searching for:", e.target.value);
+  };
+
   return (
     <header className="sticky top-0 z-10 backdrop-blur-lg bg-background/80 border-b border-border">
       <div className="container mx-auto px-4 py-4 flex justify-between items-center">
         <div className="flex items-center">
           <Link href="/">
             <div className="cursor-pointer">
-              <h1 className="text-2xl font-bold bg-gradient-to-r from-primary to-secondary text-transparent bg-clip-text">
-                VoiceVibe
+              <h1 className={`text-2xl font-bold ${theme === 'dark' ? 
+                'bg-gradient-to-r from-primary to-secondary text-transparent bg-clip-text' : 
+                'bg-gradient-to-r from-primary to-secondary text-transparent bg-clip-text'}`}>
+                VoiceSphere
               </h1>
             </div>
           </Link>
@@ -31,9 +43,11 @@ export const Header = ({ onCreateRoom }: HeaderProps) => {
             <Input 
               type="text" 
               placeholder="Search rooms" 
-              className="bg-dark-surface border border-dark-border rounded-full px-4 py-2 text-sm w-64 focus:outline-none focus:ring-2 focus:ring-primary"
+              value={searchQuery}
+              onChange={handleSearchChange}
+              className="bg-background border border-input rounded-full px-4 py-2 text-sm w-64 focus:outline-none focus:ring-2 focus:ring-primary text-foreground"
             />
-            <SearchIcon className="h-4 w-4 absolute right-3 top-2.5 text-gray-400" />
+            <SearchIcon className="h-4 w-4 absolute right-3 top-2.5 text-muted-foreground" />
           </div>
           
           <Button
@@ -45,7 +59,15 @@ export const Header = ({ onCreateRoom }: HeaderProps) => {
           </Button>
           
           <div className="md:hidden">
-            <Button variant="ghost" size="icon" className="p-2 rounded-full hover:bg-dark-surface">
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              className="p-2 rounded-full hover:bg-accent"
+              onClick={() => {
+                // Show mobile search modal or input
+                console.log("Show mobile search");
+              }}
+            >
               <SearchIcon className="h-5 w-5" />
             </Button>
           </div>

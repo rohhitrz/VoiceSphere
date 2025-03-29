@@ -5,13 +5,18 @@ import { useLocation } from "wouter";
 
 interface RoomHeaderProps {
   room: Room;
+  onLeave?: () => void;
 }
 
-export const RoomHeader = ({ room }: RoomHeaderProps) => {
+export const RoomHeader = ({ room, onLeave }: RoomHeaderProps) => {
   const [_, setLocation] = useLocation();
 
   const handleBack = () => {
-    setLocation('/');
+    if (onLeave) {
+      onLeave();
+    } else {
+      setLocation('/');
+    }
   };
 
   return (

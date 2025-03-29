@@ -2,9 +2,10 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { LogOut, Mic, MicOff, Hand } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
+import { useTheme } from "@/hooks/use-theme";
 
 interface RoomControlsProps {
-  onLeaveRoom: () => void;
+  onLeave: () => void;
   onToggleMute?: (isMuted: boolean) => void;
   onRaiseHand?: () => void;
   isMuted?: boolean;
@@ -12,12 +13,15 @@ interface RoomControlsProps {
 }
 
 export const RoomControls = ({ 
-  onLeaveRoom, 
+  onLeave, 
   onToggleMute, 
   onRaiseHand,
   isMuted = false,
   isHandRaised = false
 }: RoomControlsProps) => {
+  // Theme
+  const { theme } = useTheme();
+  
   // Refs for audio recording and playback
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
@@ -34,23 +38,28 @@ export const RoomControls = ({
     audioElementRef.current = new Audio();
     
     // Check if microphone is available
-    navigator.mediaDevices.getUserMedia({ audio: true })
-      .then((stream) => {
-        setMicPermission(true);
-        streamRef.current = stream;
-        
-        // Stop the tracks immediately to avoid unnecessary microphone use
-        stream.getTracks().forEach(track => track.stop());
-      })
-      .catch((err) => {
-        console.error("Microphone permission denied:", err);
-        setMicPermission(false);
-        toast({
-          title: "Microphone access denied",
-          description: "Please enable microphone access to use the speaking feature.",
-          variant: "destructive"
+    if (typeof window !== 'undefined' && 'mediaDevices' in navigator && navigator.mediaDevices.getUserMedia) {
+      navigator.mediaDevices.getUserMedia({ audio: true })
+        .then((stream) => {
+          setMicPermission(true);
+          streamRef.current = stream;
+          
+          // Stop the tracks immediately to avoid unnecessary microphone use
+          stream.getTracks().forEach(track => track.stop());
+        })
+        .catch((err) => {
+          console.error("Microphone permission denied:", err);
+          setMicPermission(false);
+          toast({
+            title: "Microphone access denied",
+            description: "Please enable microphone access to use the speaking feature.",
+            variant: "destructive"
+          });
         });
-      });
+    } else {
+      console.warn("Media devices not supported in this browser");
+      setMicPermission(false);
+    }
       
     return () => {
       // Clean up when component unmounts
@@ -71,6 +80,15 @@ export const RoomControls = ({
   
   // Start recording
   const startRecording = useCallback(async () => {
+    if (!navigator.mediaDevices) {
+      toast({
+        title: "Browser not supported",
+        description: "Your browser doesn't support audio recording.",
+        variant: "destructive"
+      });
+      return;
+    }
+    
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       streamRef.current = stream;
@@ -101,7 +119,9 @@ export const RoomControls = ({
         // Play the recorded audio
         if (audioElementRef.current) {
           audioElementRef.current.src = url;
-          audioElementRef.current.play();
+          audioElementRef.current.play().catch(err => {
+            console.error("Error playing audio:", err);
+          });
         }
         
         // Stop tracks
@@ -201,7 +221,7 @@ export const RoomControls = ({
   }, [onRaiseHand]);
 
   return (
-    <div className="bg-dark-surface border-t border-dark-border py-4 px-6">
+    <div className="bg-background border-t border-border py-4 px-6">
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-4">
           {/* Mute toggle button */}
@@ -209,7 +229,7 @@ export const RoomControls = ({
             id="mute-toggle"
             variant="outline"
             onClick={handleMuteToggle}
-            className="w-12 h-12 bg-dark-bg rounded-full flex items-center justify-center hover:bg-dark-border transition-colors p-0"
+            className="w-12 h-12 rounded-full flex items-center justify-center p-0"
           >
             {isMuted ? (
               <MicOff className="h-6 w-6 text-red-500" />
@@ -222,19 +242,13 @@ export const RoomControls = ({
           <Button
             id="press-to-talk"
             variant={isRecording ? "destructive" : "outline"}
-            onMouseDown={handleMicMouseDown}
-            onMouseUp={handleMicMouseUp}
-            onMouseLeave={handleMicMouseUp} // In case mouse leaves while pressed
-            onTouchStart={handleMicMouseDown}
-            onTouchEnd={handleMicMouseUp}
+            onClick={handleMicToggle}
             disabled={isMuted || micPermission === false}
             className={`w-12 h-12 rounded-full flex items-center justify-center transition-colors p-0 ${
-              isRecording 
-                ? 'animate-pulse bg-red-500 text-white border-red-500' 
-                : 'bg-dark-bg hover:bg-dark-border'
+              isRecording ? 'animate-pulse' : ''
             }`}
           >
-            <Mic className={`h-6 w-6 ${isRecording ? 'text-white' : 'text-gray-400'}`} />
+            <Mic className={`h-6 w-6 ${isRecording ? 'text-white' : ''}`} />
           </Button>
           
           {/* Raise hand button */}
@@ -242,19 +256,24 @@ export const RoomControls = ({
             id="raise-hand"
             variant="outline"
             onClick={handleRaiseHand}
-            className="w-12 h-12 bg-dark-bg rounded-full flex items-center justify-center hover:bg-dark-border transition-colors p-0"
+            className="w-12 h-12 rounded-full flex items-center justify-center p-0"
           >
-            <Hand className={`h-6 w-6 ${isHandRaised ? 'text-primary' : 'text-gray-400'}`} />
+            <Hand className={`h-6 w-6 ${isHandRaised ? 'text-primary' : ''}`} />
           </Button>
         </div>
         
-        <Button
-          onClick={onLeaveRoom}
-          className="bg-red-500 hover:bg-red-600 text-white py-2 px-6 rounded-full transition duration-300 ease-in-out flex items-center space-x-2"
-        >
-          <LogOut className="h-4 w-4" />
-          <span>Leave Room</span>
-        </Button>
+        <div>
+          {/* Leave button */}
+          <Button
+            id="leave-button"
+            variant="destructive"
+            onClick={onLeave}
+            className="rounded-full"
+          >
+            <LogOut className="h-4 w-4 mr-2" />
+            Leave
+          </Button>
+        </div>
       </div>
     </div>
   );
